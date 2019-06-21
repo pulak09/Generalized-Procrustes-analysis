@@ -5,17 +5,15 @@
 %   Email - pulak.isi@gmail.com 
 
 %% Read datasets  
-data_path = 'datasets/300W/01_Indoor/'; 
-
+data_path = '300W/01_Indoor/'; 
 filelist = dir(data_path);
-
 datasize = numel(filelist)/2 -1; 
 
-% Initally I thought the images are of same size but that is not the case 
+% Note that the images are of different size 
 % sz = size(imread([data_path, filelist(3).name])); 
 % images = zeros([datasize, sz]); 
 
-
+flag_display = 1; % You can choose this to be 0 if you dont want to display 
 images = cell(1, datasize); 
 
 fileID = fopen([data_path, filelist(4).name], 'r'); 
@@ -37,17 +35,17 @@ for i = 1:datasize
     points(i, :, :) = reshape(fscanf(fileID, '%f', 2*no_points), [2, no_points]); 
     disp(i/datasize); 
      
-%% Plot : To check if the readings are correct 
-    
-    imshow( images{i} ); hold on; 
-    plot(squeeze(points(i, 1, :)), - squeeze(points(i, 2, :)), 'r*'); 
-    hold off; 
-    pause; 
+% Plot : To check if the readings are correct 
+    if flag_display
+        imshow( images{i} ); hold on; 
+        plot(squeeze(points(i, 1, :)),  squeeze(points(i, 2, :)), 'r*'); 
+        hold off; 
+        pause; 
+    end
 
 end 
 
 % save('points.mat', 'points'); 
-
 % Procrustes analysis https://en.wikipedia.org/wiki/Procrustes_analysis 
 % load('points.mat'); 
 % Translation 
@@ -55,19 +53,12 @@ end
 points_mean = repmat(mean(points, 3), [1, 1, no_points]); 
 points = points - points_mean; 
 
-% Scaling 
+%% Scaling 
 
 points_scale = sqrt(sum(sum(points.^2, 3), 2)/no_points); 
 points = points./repmat(points_scale, [1, 2, no_points]); 
 
-% Checking again if the things are going well 
-% for i = 1:datasize 
-%     plot(squeeze(points(i, 1, :)), squeeze(points(i, 2, :)), 'r*'); 
-%     hold off; 
-%     pause; 
-% end
-
-% Rotation 
+%% Rotation 
 
 theta = atan(squeeze(sum(points(:, 1, :).*repmat(points(1, 2, :), [datasize, 1, 1]) - points(1, 2, :).*repmat(points(1, 1, :), [datasize, 1, 1]), 3))...
     ./squeeze(sum(points(:, 1, :).*repmat(points(1, 1, :), [datasize, 1, 1]) + points(1, 2, :).*repmat(points(1, 2, :), [datasize, 1, 1]), 3))); 
@@ -77,19 +68,20 @@ R2 = [sin(theta), cos(theta)];
 
 points_transformed = cat(2, sum(points.*repmat(R1, [1, 1, no_points]), 2), sum(points.*repmat(R2, [1, 1, no_points]), 2)); 
 
-% % Checking again if the things are going well 
-% for i = 1:datasize 
-%     plot(squeeze(points_transformed(i, 1, :)), - squeeze(points_transformed(i, 2, :)), 'r*'); 
-%     hold off; 
-%     pause;  
-% end
-
+% Checking again if the things are going well 
+if flag_display
+    for i = 1:datasize 
+        plot(squeeze(points_transformed(i, 1, :)), - squeeze(points_transformed(i, 2, :)), 'r*'); 
+        hold off; 
+        pause;  
+    end
+end
 
 %% Generalized Procrustes analysis 
 % Compute optimal mean face C_hat
 % Initialize the initial centroid C as the first facial image 
 
-load('points.mat'); 
+% load('points.mat'); 
 % Translation 
 no_points = size(points, 3);  
 datasize = size(points, 1); 
@@ -140,12 +132,14 @@ for i = 1:datasize
 end
 
 %% Checking again if the things are going well 
-for i = 1:datasize 
-    plot(squeeze(points_transformed(i, 1, :)), - squeeze(points_transformed(i, 2, :)), 'r*'); hold on; 
-    plot(C_hat(1, :), - C_hat(2, :), 'g*'); 
-    axis([-0.15 0.15 -0.15 0.15]); 
-    hold off; 
-    pause; 
+if flag_display
+    for i = 1:datasize 
+        plot(squeeze(points_transformed(i, 1, :)), - squeeze(points_transformed(i, 2, :)), 'r*'); hold on; 
+        plot(C_hat(1, :), - C_hat(2, :), 'g*'); 
+        axis([-0.15 0.15 -0.15 0.15]); 
+        hold off; 
+        pause; 
+    end
 end
 
 %% Principle component Analysis of shapes 
@@ -163,15 +157,16 @@ Y = X*M;                          % Data projected on the eigenspaces
 
 eigenshapes = reshape(M, [numel(id_c), 2, no_points]); % Computing Eigen Shapes 
 
-% % Plotting the Eigen Shapes 
-% for i = 1:datasize 
-%     plot(squeeze(eigenshapes(i, 1, :)), - squeeze(eigenshapes(i, 2, :)), 'r*'); hold on; 
-%     plot(C_hat(1, :), - C_hat(2, :), 'g*'); 
-%     axis([-0.15 0.15 -0.15 0.15]); 
-%     hold off; 
-%     pause; 
-% end
-
+% Plotting the Eigen Shapes 
+if flag_display
+    for i = 1:datasize 
+        plot(squeeze(eigenshapes(i, 1, :)), - squeeze(eigenshapes(i, 2, :)), 'r*'); hold on; 
+        plot(C_hat(1, :), - C_hat(2, :), 'g*'); 
+        axis([-0.15 0.15 -0.15 0.15]); 
+        hold off; 
+        pause; 
+    end
+end
 X_bar = Y*M';                    % Back to the original shape 
 
 disp(norm(X - X_bar)); 

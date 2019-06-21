@@ -8,6 +8,10 @@ For any queries contact:  Email - pulak.isi@gmail.com
 
 The dataset can be found at https://ibug.doc.ic.ac.uk/resources/facial-point-annotations/
 
+Extract the datasets:
+
+    cat 300w.zip.* > 300w.zip; unzip 300w.zip 
+
 To execute the code:
 
     run GPA_PCA.m in MATLAB
